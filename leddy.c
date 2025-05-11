@@ -1,47 +1,48 @@
 
-#include "tasmota.h"
+#include "leddy.h"
 #include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-LIGHT_STATE e_ls;
-POWER_STATE e_ps;
+LightState global_light_state = LIGHT_STATE_UNKNOWN;
+LightState states_cycle[] = {LIGHT_STATE_DAY, LIGHT_STATE_DAYBREAK,
+                             LIGHT_STATE_NIGHT};
 
-const char *lstoa(LIGHT_STATE ls) {
+const char *lstoa(LightState ls) {
   switch (ls) {
-  case DAY:
+  case LIGHT_STATE_DAY:
     return "DAY";
-  case DAYBREAK:
+  case LIGHT_STATE_DAYBREAK:
     return "DAYBREAK";
-  case NIGHT:
+  case LIGHT_STATE_NIGHT:
     return "NIGHT";
-  case UNKNOWN:
+  case LIGHT_STATE_UNKNOWN:
     return "UNKNOWN"; // Handle the UNKNOWN state
   default:
     return "INVALID"; // Handle unexpected values
   }
 }
 
-LIGHT_STATE atols(char *ls) {
-  LIGHT_STATE state = DAY; // Default state
+LightState atols(char *ls) {
+  LightState state = LIGHT_STATE_DAY; // Default state
   if (strcmp(ls, "DAY") == 0) {
-    state = DAY;
+    state = LIGHT_STATE_DAY;
   } else if (strcmp(ls, "DAYBREAK") == 0) {
-    state = DAYBREAK;
+    state = LIGHT_STATE_DAYBREAK;
   } else if (strcmp(ls, "NIGHT") == 0) {
-    state = NIGHT;
+    state = LIGHT_STATE_NIGHT;
   } else {
-    state = UNKNOWN;
+    state = LIGHT_STATE_UNKNOWN;
   }
   return state;
 }
 
-LIGHT_STATE get_stored_state() {
-  LIGHT_STATE state = DAY; // Default state
-  FILE *file = fopen(TASMOTA_STATE_FILE, "r");
+LightState get_stored_state() {
+  LightState state = LIGHT_STATE_DAY; // Default state
+  FILE *file = fopen(LEDDY_STATE_FILE, "r");
   if (file == NULL) {
-    return UNKNOWN;
+    return LIGHT_STATE_UNKNOWN;
   }
 
   char line[256];
@@ -53,9 +54,9 @@ LIGHT_STATE get_stored_state() {
 
     // Compare the line with expected states
     state = atols(line);
-    if (state == UNKNOWN) {
+    if (state == LIGHT_STATE_UNKNOWN) {
       power_reset();
-      state = DAY;
+      state = LIGHT_STATE_DAY;
     }
   }
 
@@ -63,30 +64,29 @@ LIGHT_STATE get_stored_state() {
   return state;
 }
 
-void set_stored_state(LIGHT_STATE ls) {
-  FILE *file = fopen(TASMOTA_STATE_FILE, "w");
+void save_light_state() {
+  FILE *file = fopen(LEDDY_STATE_FILE, "w");
   if (file == NULL) {
-    fprintf(stderr, "Could not open .tasmota_state file\n");
+    fprintf(stderr, "Could not open .leddy_state file\n");
     exit(EXIT_FAILURE);
   }
-  fprintf(file, "%s\n", lstoa(ls));
+  fprintf(file, "%s\n", lstoa(global_light_state));
   fclose(file);
 }
 
-void tasmota_init() {
-  e_ls = get_stored_state();
-  if (e_ls == UNKNOWN) {
+void leddy_init() {
+  global_light_state = get_stored_state();
+  if (global_light_state == LIGHT_STATE_UNKNOWN) {
     power_reset();
-    e_ls = DAY;
-    set_stored_state(e_ls);
+    global_light_state = LIGHT_STATE_DAY;
+    save_light_state();
   }
 }
 
-int count_cycles_to_state(LIGHT_STATE ls) {
-  LIGHT_STATE states_cycle[] = {DAY, DAYBREAK, NIGHT};
+int count_cycles_to_state(LightState ls) {
   int current_state_index, required_cycles = 0;
-  for (int i = 0; i < sizeof(states_cycle) / sizeof(LIGHT_STATE); i++) {
-    if (states_cycle[i] == e_ls) {
+  for (int i = 0; i < sizeof(states_cycle) / sizeof(LightState); i++) {
+    if (states_cycle[i] == global_light_state) {
       current_state_index = i;
       break;
     }
@@ -95,18 +95,17 @@ int count_cycles_to_state(LIGHT_STATE ls) {
   while (states_cycle[current_state_index] != ls) {
     current_state_index++;
     required_cycles++;
-    if (current_state_index >= sizeof(states_cycle) / sizeof(LIGHT_STATE))
+    if (current_state_index >= sizeof(states_cycle) / sizeof(LightState))
       current_state_index = 0;
   }
 
   return required_cycles;
 }
 
-LIGHT_STATE state_after_cycles(int cycles) {
-  LIGHT_STATE states_cycle[] = {DAY, DAYBREAK, NIGHT};
+LightState state_after_cycles(int cycles) {
   int current_state_index;
-  for (int i = 0; i < sizeof(states_cycle) / sizeof(LIGHT_STATE); i++) {
-    if (states_cycle[i] == e_ls) {
+  for (int i = 0; i < sizeof(states_cycle) / sizeof(LightState); i++) {
+    if (states_cycle[i] == global_light_state) {
       current_state_index = i;
       break;
     }
@@ -114,38 +113,36 @@ LIGHT_STATE state_after_cycles(int cycles) {
 
   for (int i = 0; i < cycles; ++i) {
     current_state_index++;
-    if (current_state_index > sizeof(states_cycle) / sizeof(LIGHT_STATE))
+    if (current_state_index >= sizeof(states_cycle) / sizeof(LightState))
       current_state_index = 0;
   }
 
   return states_cycle[current_state_index];
 }
 
-void switch_state(LIGHT_STATE ls) {
+void switch_state(LightState ls) {
   int cycles = count_cycles_to_state(ls);
   power_cycle(cycles);
-  e_ls = ls;
-  set_stored_state(e_ls);
+  global_light_state = ls;
+  save_light_state();
 }
 
 void state_reset() {
-  LIGHT_STATE target = e_ls;
+  LightState target = global_light_state;
   power_reset();
-  e_ls = DAY;
   switch_state(target);
-  set_stored_state(target);
 }
 
 char *construct_url(const char *command) {
   // Allocate memory for the full URL
   size_t url_length =
-      strlen(TASMOTA_URL) + strlen(command) + 1; // +1 for null terminator
+      strlen(LEDDY_URL) + strlen(command) + 1; // +1 for null terminator
   char *url = malloc(url_length);
   if (url == NULL) {
     fprintf(stderr, "Memory allocation failed\n");
     exit(EXIT_FAILURE);
   }
-  strcpy(url, TASMOTA_URL);
+  strcpy(url, LEDDY_URL);
   strcat(url, command);
   return url;
 }
@@ -193,11 +190,14 @@ void power_reset() {
   power_off();
   sleep_milliseconds(RESET_DELAY_MS);
   power_on();
+  global_light_state = LIGHT_STATE_DAY;
 }
 
 void power_cycle(int cycles) {
+  LightState after = state_after_cycles(cycles);
   for (int i = 0; i < cycles; ++i) {
     power_off();
     power_on();
   }
+  global_light_state = after;
 }

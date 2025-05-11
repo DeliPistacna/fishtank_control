@@ -1,13 +1,13 @@
-#include "tasmota.h"
+#include "leddy.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char *argv[]) {
 
-  tasmota_init();
+  leddy_init();
 
-  // TODO: Implement tasmota command chaining / buffering
+  // TODO: Implement leddy command chaining / buffering
 
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <on|off>\n", argv[0]);
@@ -20,10 +20,8 @@ int main(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
     int cycles = atoi(argv[2]);
-    LIGHT_STATE target = state_after_cycles(cycles);
     power_cycle(cycles);
-    e_ls = target;
-    set_stored_state(e_ls);
+    save_light_state();
   } else if (strcmp(argv[1], "on") == 0) {
     power_on();
   } else if (strcmp(argv[1], "off") == 0) {
@@ -31,11 +29,11 @@ int main(int argc, char *argv[]) {
   } else if (strcmp(argv[1], "reset") == 0) {
     state_reset();
   } else if (strcmp(argv[1], "day") == 0) {
-    switch_state(DAY);
+    switch_state(LIGHT_STATE_DAY);
   } else if (strcmp(argv[1], "daybreak") == 0) {
-    switch_state(DAYBREAK);
+    switch_state(LIGHT_STATE_DAYBREAK);
   } else if (strcmp(argv[1], "night") == 0) {
-    switch_state(NIGHT);
+    switch_state(LIGHT_STATE_NIGHT);
   } else {
     fprintf(stderr,
             "Invalid argument: %s. Use 'on' or 'off' or 'cycle <n>' or set "

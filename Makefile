@@ -2,10 +2,10 @@
 TARGET = fishtank_control
 
 # Source files
-SRCS = fishtank_control.c tasmota.c
+SRCS = fishtank_control.c leddy.c
 
 # Header files
-HEADERS = tasmota.h
+HEADERS = leddy.h
 
 # Default target
 all: $(TARGET)
