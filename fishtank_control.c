@@ -4,6 +4,11 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
+
+  tasmota_init();
+
+  // TODO: Implement tasmota command chaining / buffering
+
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <on|off>\n", argv[0]);
     return EXIT_FAILURE;
@@ -14,24 +19,23 @@ int main(int argc, char *argv[]) {
       printf("No cycle count provided");
       return EXIT_FAILURE;
     }
+    // FIXME: Breaks current state
     int cycles = atoi(argv[2]);
     power_cycle(cycles);
+    e_ls = UNKNOWN;
+    set_stored_state(e_ls);
   } else if (strcmp(argv[1], "on") == 0) {
     power_on();
   } else if (strcmp(argv[1], "off") == 0) {
     power_off();
+  } else if (strcmp(argv[1], "reset") == 0) {
+    state_reset();
   } else if (strcmp(argv[1], "day") == 0) {
-    power_off();
-    sleep_milliseconds(5000);
-    power_on();
+    switch_state(DAY);
   } else if (strcmp(argv[1], "daybreak") == 0) {
-    power_off();
-    sleep_milliseconds(5000);
-    power_cycle(2);
+    switch_state(DAYBREAK);
   } else if (strcmp(argv[1], "night") == 0) {
-    power_off();
-    sleep_milliseconds(5000);
-    power_cycle(3);
+    switch_state(NIGHT);
   } else {
     fprintf(stderr,
             "Invalid argument: %s. Use 'on' or 'off' or 'cycle <n>' or set "
