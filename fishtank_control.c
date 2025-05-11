@@ -19,10 +19,10 @@ int main(int argc, char *argv[]) {
       printf("No cycle count provided");
       return EXIT_FAILURE;
     }
-    // FIXME: Breaks current state
     int cycles = atoi(argv[2]);
+    LIGHT_STATE target = state_after_cycles(cycles);
     power_cycle(cycles);
-    e_ls = UNKNOWN;
+    e_ls = target;
     set_stored_state(e_ls);
   } else if (strcmp(argv[1], "on") == 0) {
     power_on();

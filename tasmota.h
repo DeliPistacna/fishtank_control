@@ -34,6 +34,7 @@ LIGHT_STATE cycle_current_state();
 const char *lstoa(LIGHT_STATE ls);
 LIGHT_STATE atols(char *ls);
 int count_cycles_to_state(LIGHT_STATE ls);
+LIGHT_STATE state_after_cycles(int cycles);
 void switch_state(LIGHT_STATE ls);
 void state_reset();
 

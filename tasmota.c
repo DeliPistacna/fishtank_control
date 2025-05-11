@@ -102,6 +102,25 @@ int count_cycles_to_state(LIGHT_STATE ls) {
   return required_cycles;
 }
 
+LIGHT_STATE state_after_cycles(int cycles) {
+  LIGHT_STATE states_cycle[] = {DAY, DAYBREAK, NIGHT};
+  int current_state_index;
+  for (int i = 0; i < sizeof(states_cycle) / sizeof(LIGHT_STATE); i++) {
+    if (states_cycle[i] == e_ls) {
+      current_state_index = i;
+      break;
+    }
+  }
+
+  for (int i = 0; i < cycles; ++i) {
+    current_state_index++;
+    if (current_state_index > sizeof(states_cycle) / sizeof(LIGHT_STATE))
+      current_state_index = 0;
+  }
+
+  return states_cycle[current_state_index];
+}
+
 void switch_state(LIGHT_STATE ls) {
   int cycles = count_cycles_to_state(ls);
   power_cycle(cycles);
