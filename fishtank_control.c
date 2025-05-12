@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
 
@@ -26,6 +27,14 @@ int main(int argc, char *argv[]) {
     power_on();
   } else if (strcmp(argv[1], "off") == 0) {
     power_off();
+  } else if (strcmp(argv[1], "feed") == 0) {
+    LightState current = global_light_state;
+    switch_state(LIGHT_STATE_DAYBREAK);
+    int sleep_mins = 10;
+    if (argc > 2)
+      sleep_mins = atoi(argv[2]);
+    sleep(sleep_mins * 60);
+    switch_state(current);
   } else if (strcmp(argv[1], "reset") == 0) {
     state_reset();
   } else if (strcmp(argv[1], "day") == 0) {

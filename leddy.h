@@ -15,33 +15,40 @@ typedef enum {
   LIGHT_STATE_UNKNOWN,
 } LightState;
 
-typedef enum {
-  ON,
-  OFF,
-} POWER_STATE;
+// TODO: check power state from tasmota?
+// typedef enum {
+//   ON,
+//   OFF,
+// } POWER_STATE;
 
 extern LightState states_cycle[];
 
 extern LightState global_light_state;
-extern POWER_STATE e_ps;
 
 void leddy_init();
-LightState get_stored_state();
+LightState load_light_state();
 void save_light_state();
-LightState cycle_current_state();
-const char *lstoa(LightState ls);
+
 LightState atols(char *ls);
-int count_cycles_to_state(LightState ls);
+const char *lstoa(LightState ls);
+
 LightState state_after_cycles(int cycles);
+int count_cycles_to_state(LightState ls);
+
 void switch_state(LightState ls);
 void state_reset();
 
+// Curl
 char *construct_url(const char *command);
-void sleep_milliseconds(long milliseconds);
 void send_command(const char *command);
+
+// Power
 void power_off();
 void power_on();
 void power_reset();
 void power_cycle(int cycles);
+
+// Misc
+void sleep_milliseconds(long milliseconds);
 
 #endif // !LEDDY_H

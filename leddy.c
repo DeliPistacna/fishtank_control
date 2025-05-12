@@ -25,7 +25,7 @@ const char *lstoa(LightState ls) {
 }
 
 LightState atols(char *ls) {
-  LightState state = LIGHT_STATE_DAY; // Default state
+  LightState state = LIGHT_STATE_UNKNOWN; // Default state
   if (strcmp(ls, "DAY") == 0) {
     state = LIGHT_STATE_DAY;
   } else if (strcmp(ls, "DAYBREAK") == 0) {
@@ -38,7 +38,7 @@ LightState atols(char *ls) {
   return state;
 }
 
-LightState get_stored_state() {
+LightState load_light_state() {
   LightState state = LIGHT_STATE_DAY; // Default state
   FILE *file = fopen(LEDDY_STATE_FILE, "r");
   if (file == NULL) {
@@ -67,7 +67,7 @@ LightState get_stored_state() {
 void save_light_state() {
   FILE *file = fopen(LEDDY_STATE_FILE, "w");
   if (file == NULL) {
-    fprintf(stderr, "Could not open .leddy_state file\n");
+    fprintf(stderr, "Could not open %s file\n", LEDDY_STATE_FILE);
     exit(EXIT_FAILURE);
   }
   fprintf(file, "%s\n", lstoa(global_light_state));
@@ -75,7 +75,7 @@ void save_light_state() {
 }
 
 void leddy_init() {
-  global_light_state = get_stored_state();
+  global_light_state = load_light_state();
   if (global_light_state == LIGHT_STATE_UNKNOWN) {
     power_reset();
     global_light_state = LIGHT_STATE_DAY;
