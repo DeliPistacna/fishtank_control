@@ -1,12 +1,23 @@
 #include "leddy.h"
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+LightState exit_state;
+
+// Function to be called when Ctrl+C is pressed
+void handle_sigint(int sig) {
+  switch_state(exit_state);
+  exit(0); // Exit the program
+}
+
 int main(int argc, char *argv[]) {
+  signal(SIGINT, handle_sigint);
 
   leddy_init();
+  exit_state = global_light_state;
 
   // TODO: Implement leddy command chaining / buffering
 
