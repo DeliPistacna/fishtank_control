@@ -83,14 +83,20 @@ void leddy_init() {
   }
 }
 
-int count_cycles_to_state(LightState ls) {
-  int current_state_index, required_cycles = 0;
+int find_light_state_index(LightState ls) {
+  int index;
   for (int i = 0; i < sizeof(states_cycle) / sizeof(LightState); i++) {
-    if (states_cycle[i] == global_light_state) {
-      current_state_index = i;
+    if (states_cycle[i] == ls) {
+      index = i;
       break;
     }
   }
+  return index;
+}
+
+int count_cycles_to_state(LightState ls) {
+  int current_state_index = find_light_state_index(global_light_state),
+      required_cycles = 0;
 
   while (states_cycle[current_state_index] != ls) {
     current_state_index++;
@@ -103,13 +109,7 @@ int count_cycles_to_state(LightState ls) {
 }
 
 LightState state_after_cycles(int cycles) {
-  int current_state_index;
-  for (int i = 0; i < sizeof(states_cycle) / sizeof(LightState); i++) {
-    if (states_cycle[i] == global_light_state) {
-      current_state_index = i;
-      break;
-    }
-  }
+  int current_state_index = find_light_state_index(global_light_state);
 
   for (int i = 0; i < cycles; ++i) {
     current_state_index++;

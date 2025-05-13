@@ -57,7 +57,9 @@ int main(int argc, char *argv[]) {
   } else {
     fprintf(stderr,
             "Invalid argument: %s. Use 'on' or 'off' or 'cycle <n>' or set "
-            "light directly: day, daybreak, night.\n",
+            "light directly: day, daybreak, night.\n"
+            "Use reset to put leddy into known state\n"
+            "Use feed for temp DAYBREAK, then return to original state\n",
             argv[1]);
     return EXIT_FAILURE;
   }
