@@ -1,23 +1,39 @@
-# Target executable
+# Executable name
 TARGET = fishtank_control
 
-# Source files
+# Source and header files
 SRCS = fishtank_control.c leddy.c
-
-# Header files
 HEADERS = leddy.h
 
-# Default target
-all: $(TARGET)
+# Compiler and flags
+CC = clang
+CFLAGS_COMMON = -Wall -Werror -lcurl
+CFLAGS_DEV = $(CFLAGS_COMMON) -fsanitize=address -g
+CFLAGS_PROD = $(CFLAGS_COMMON) -O2
 
-# Build the target
-$(TARGET): $(SRCS) $(HEADERS)
-	gcc -lcurl $(SRCS) -o $(TARGET)
-	cp $(TARGET) ~/toolkit/
+# Output directory
+OUT_DIR = build
 
-# Clean target to remove the executable
+# Default target: dev build
+all: dev
+
+# Dev build target
+dev: $(OUT_DIR)/$(TARGET)
+
+$(OUT_DIR)/$(TARGET): $(SRCS) $(HEADERS)
+	@mkdir -p $(OUT_DIR)
+	$(CC) $(CFLAGS_DEV) $(SRCS) -o $(OUT_DIR)/$(TARGET)
+	cp $(OUT_DIR)/$(TARGET) ~/toolkit/
+
+# Prod build target
+prod: clean
+	@mkdir -p $(OUT_DIR)
+	$(CC) $(CFLAGS_PROD) $(SRCS) -o $(OUT_DIR)/$(TARGET)
+	cp $(OUT_DIR)/$(TARGET) ~/toolkit/
+
+# Clean build artifacts
 clean:
-	rm -f $(TARGET)
+	rm -rf $(OUT_DIR)
 
-# Phony targets
-.PHONY: all clean
+# Mark these targets as not real files
+.PHONY: all dev prod clean
