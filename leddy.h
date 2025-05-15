@@ -8,6 +8,7 @@
 #define POWER_ON "Power%20On"
 #define POWER_OFF "Power%20Off"
 #define PAUSE "Delay%201"
+#define PAUSE_RESET "Delay%20500"
 #define LEDDY_STATE_FILE ".leddy_state"
 #define RESET_DELAY_MS 5000
 #define DELAY_MS 10
