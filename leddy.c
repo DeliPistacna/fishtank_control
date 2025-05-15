@@ -274,13 +274,19 @@ void sleep_milliseconds(long milliseconds) {
 }
 
 void power_on() {
-  send_command(POWER_ON);
-  sleep_milliseconds(DELAY_MS);
+  TasmotaCommandChain *tcc = create_tasmota_command_chain();
+  add_command_to_tcc(tcc, POWER_ON);
+  execute_tcc(tcc);
+  global_light_state = LIGHT_STATE_DAY;
+  save_light_state();
 }
 
 void power_off() {
-  send_command(POWER_OFF);
-  sleep_milliseconds(DELAY_MS);
+  TasmotaCommandChain *tcc = create_tasmota_command_chain();
+  add_command_to_tcc(tcc, POWER_OFF);
+  execute_tcc(tcc);
+  global_light_state = LIGHT_STATE_UNKNOWN;
+  save_light_state();
 }
 
 void power_reset() {
