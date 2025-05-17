@@ -44,7 +44,9 @@ int main(int argc, char *argv[]) {
     power_off(tcc);
   } else if (strcmp(argv[1], "feed") == 0) {
     LightState current = global_light_state;
-    switch_state(LIGHT_STATE_DAYBREAK, tcc);
+    TasmotaCommandChain *daybreak = create_tasmota_command_chain();
+    switch_state(LIGHT_STATE_DAYBREAK, daybreak);
+    execute_tcc(daybreak);
     int sleep_mins = 10;
     if (argc > 2)
       sleep_mins = atoi(argv[2]);
