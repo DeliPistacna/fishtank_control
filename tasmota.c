@@ -128,8 +128,8 @@ int execute_tcc(TasmotaCommandChain *tcc) {
 
   char *url = construct_url(command_buffer);
 
-  printf("COMMAND: %s\n", command_buffer);
-  printf("URL: %s\n", url);
+  // printf("COMMAND: %s\n", command_buffer);
+  // printf("URL: %s\n", url);
   get_request(url);
   free(url);
   free(command_buffer);
