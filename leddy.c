@@ -1,58 +1,14 @@
 
 #include "leddy.h"
-#include <curl/curl.h>
+#include "tasmota.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 LightState global_light_state = LIGHT_STATE_UNKNOWN;
 LightState states_cycle[] = {LIGHT_STATE_DAY, LIGHT_STATE_DAYBREAK,
                              LIGHT_STATE_NIGHT};
-
-TasmotaCommandChain *create_tasmota_command_chain(void) {
-  TasmotaCommandChain *tcc = malloc(sizeof(TasmotaCommandChain));
-  if (!tcc)
-    return NULL;
-  tcc->items = 0;
-  tcc->capacity = TCC_INIT_CAP;
-  tcc->buffer = malloc(sizeof(char *) * tcc->capacity);
-  if (!tcc->buffer) {
-    free(tcc);
-    return NULL;
-  }
-  return tcc;
-}
-
-int add_command_to_tcc(TasmotaCommandChain *tcc, char *command) {
-  // Resize buffer if needed
-  if (tcc->items >= tcc->capacity) {
-    size_t new_cap = tcc->capacity * 2;
-    char **new_buffer = realloc(tcc->buffer, sizeof(char *) * new_cap);
-    if (!new_buffer)
-      return -1;
-    tcc->buffer = new_buffer;
-    tcc->capacity = new_cap;
-  }
-
-  tcc->buffer[tcc->items] = strdup(command);
-  if (!tcc->buffer[tcc->items])
-    return -1;
-
-  tcc->items++;
-
-  return 1;
-}
-
-// Free chain
-void free_tcc(TasmotaCommandChain *tcc) {
-  if (!tcc)
-    return;
-  for (size_t i = 0; i < tcc->items; ++i) {
-    free(tcc->buffer[i]);
-  }
-  free(tcc->buffer);
-  free(tcc);
-}
 
 const char *lstoa(LightState ls) {
   switch (ls) {
@@ -83,7 +39,7 @@ LightState atols(char *ls) {
   return state;
 }
 
-LightState load_light_state() {
+LightState load_light_state(TasmotaCommandChain *tcc) {
   LightState state = LIGHT_STATE_DAY; // Default state
   FILE *file = fopen(LEDDY_STATE_FILE, "r");
   if (file == NULL) {
@@ -100,7 +56,7 @@ LightState load_light_state() {
     // Compare the line with expected states
     state = atols(line);
     if (state == LIGHT_STATE_UNKNOWN) {
-      power_reset();
+      power_reset(tcc);
       state = LIGHT_STATE_DAY;
     }
   }
@@ -119,14 +75,14 @@ void save_light_state() {
   fclose(file);
 }
 
-void leddy_init() {
-  global_light_state = load_light_state();
+void leddy_init(TasmotaCommandChain *tcc) {
+  global_light_state = load_light_state(tcc);
   if (global_light_state == LIGHT_STATE_UNKNOWN) {
-    power_reset();
+    power_reset(tcc);
     global_light_state = LIGHT_STATE_DAY;
-    save_light_state();
   }
 }
+void leddy_done() { save_light_state(); }
 
 int find_light_state_index(LightState ls) {
   for (int i = 0; i < sizeof(states_cycle) / sizeof(LightState); i++) {
@@ -163,107 +119,16 @@ LightState state_after_cycles(int cycles) {
   return states_cycle[current_state_index];
 }
 
-void switch_state(LightState ls) {
+void switch_state(LightState ls, TasmotaCommandChain *tcc) {
   int cycles = count_cycles_to_state(ls);
-  power_cycle(cycles);
+  power_cycle(cycles, tcc);
   global_light_state = ls;
-  save_light_state();
 }
 
-void state_reset() {
+void state_reset(TasmotaCommandChain *tcc) {
   LightState target = global_light_state;
-  power_reset();
-  switch_state(target);
-}
-
-char *construct_url(const char *command) {
-  size_t url_length = strlen(LEDDY_URL) + strlen(CMND_PATH) + strlen(command) +
-                      1; // +1 for null terminator
-  char *url = malloc(url_length);
-  if (url == NULL) {
-    fprintf(stderr, "Memory allocation failed\n");
-    exit(EXIT_FAILURE);
-  }
-  url[0] = '\0';
-  strcpy(url, LEDDY_URL);
-  strcat(url, CMND_PATH);
-  strcat(url, command);
-  return url;
-}
-
-void send_command(const char *command) {
-  CURL *curl;
-  CURLcode res;
-
-  char *url = construct_url(command);
-
-  curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-    }
-    curl_easy_cleanup(curl);
-  } else {
-    fprintf(stderr, "Failed to initialize CURL\n");
-  }
-  free(url);
-}
-
-void get_request(const char *url) {
-  CURL *curl;
-  CURLcode res;
-
-  curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-    }
-    curl_easy_cleanup(curl);
-  } else {
-    fprintf(stderr, "Failed to initialize CURL\n");
-  }
-}
-
-int execute_tcc(TasmotaCommandChain *tcc) {
-  if (!tcc || tcc->items == 0)
-    return -1;
-
-  size_t total_len = 0;
-
-  for (size_t i = 0; i < tcc->items; ++i) {
-    total_len += strlen(tcc->buffer[i]) + 3; // +3 for separator or null
-  }
-
-  char *command_buffer = malloc(total_len);
-  if (!command_buffer)
-    return -1;
-
-  command_buffer[0] = '\0';
-
-  for (size_t i = 0; i < tcc->items; ++i) {
-    strcat(command_buffer, tcc->buffer[i]);
-    if (i < tcc->items - 1) {
-      strcat(command_buffer, "%3b");
-    }
-  }
-
-  char *url = construct_url(command_buffer);
-
-  printf("COMMAND: %s\n", command_buffer);
-  printf("URL: %s\n", url);
-  get_request(url);
-  free(url);
-  free(command_buffer);
-  free_tcc(tcc);
-  return 1;
+  power_reset(tcc);
+  switch_state(target, tcc);
 }
 
 void sleep_milliseconds(long milliseconds) {
@@ -273,41 +138,32 @@ void sleep_milliseconds(long milliseconds) {
   nanosleep(&req, &rem);                         // Sleep for the specified time
 }
 
-void power_on() {
-  TasmotaCommandChain *tcc = create_tasmota_command_chain();
+void power_on(TasmotaCommandChain *tcc) {
   add_command_to_tcc(tcc, POWER_ON);
-  execute_tcc(tcc);
+  add_command_to_tcc(tcc, PAUSE_RESET);
   global_light_state = LIGHT_STATE_DAY;
-  save_light_state();
 }
 
-void power_off() {
-  TasmotaCommandChain *tcc = create_tasmota_command_chain();
+void power_off(TasmotaCommandChain *tcc) {
   add_command_to_tcc(tcc, POWER_OFF);
-  execute_tcc(tcc);
+  add_command_to_tcc(tcc, PAUSE_RESET);
   global_light_state = LIGHT_STATE_UNKNOWN;
-  save_light_state();
 }
 
-void power_reset() {
-  TasmotaCommandChain *tcc = create_tasmota_command_chain();
+void power_reset(TasmotaCommandChain *tcc) {
   add_command_to_tcc(tcc, POWER_OFF);
   add_command_to_tcc(tcc, PAUSE_RESET);
   add_command_to_tcc(tcc, POWER_ON);
-  execute_tcc(tcc);
   global_light_state = LIGHT_STATE_DAY;
-  save_light_state();
 }
 
-void power_cycle(int cycles) {
+void power_cycle(int cycles, TasmotaCommandChain *tcc) {
   LightState after = state_after_cycles(cycles);
-  TasmotaCommandChain *tcc = create_tasmota_command_chain();
   for (int i = 0; i < cycles; ++i) {
     add_command_to_tcc(tcc, POWER_OFF);
     add_command_to_tcc(tcc, PAUSE);
     add_command_to_tcc(tcc, POWER_ON);
     add_command_to_tcc(tcc, PAUSE);
   }
-  execute_tcc(tcc);
   global_light_state = after;
 }

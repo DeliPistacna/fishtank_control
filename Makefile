@@ -2,8 +2,8 @@
 TARGET = fishtank_control
 
 # Source and header files
-SRCS = fishtank_control.c leddy.c
-HEADERS = leddy.h
+SRCS = fishtank_control.c leddy.c tasmota.c
+HEADERS = leddy.h tasmota.h
 
 # Compiler and flags
 CC = clang
