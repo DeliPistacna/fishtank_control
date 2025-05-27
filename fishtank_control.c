@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
     }
     int cycles = atoi(argv[2]);
     power_cycle(cycles, tcc);
-    save_light_state();
   } else if (strcmp(argv[1], "on") == 0) {
     power_on(tcc);
   } else if (strcmp(argv[1], "off") == 0) {

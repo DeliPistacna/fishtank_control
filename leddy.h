@@ -22,14 +22,6 @@ extern LightState global_light_state;
 
 void leddy_init(TasmotaCommandChain *tcc);
 void leddy_done(void);
-LightState load_light_state(TasmotaCommandChain *tcc);
-void save_light_state(void);
-
-LightState atols(char *ls);
-const char *lstoa(LightState ls);
-
-LightState state_after_cycles(int cycles);
-int count_cycles_to_state(LightState ls);
 
 void switch_state(LightState ls, TasmotaCommandChain *tcc);
 void state_reset(TasmotaCommandChain *tcc);
@@ -39,8 +31,5 @@ void power_off(TasmotaCommandChain *tcc);
 void power_on(TasmotaCommandChain *tcc);
 void power_reset(TasmotaCommandChain *tcc);
 void power_cycle(int cycles, TasmotaCommandChain *tcc);
-
-// Misc
-void sleep_milliseconds(long milliseconds);
 
 #endif // !LEDDY_H

@@ -1,17 +1,22 @@
 #include "tasmota.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void tcc_init() { tcc = create_tasmota_command_chain(); }
 
 TasmotaCommandChain *create_tasmota_command_chain(void) {
   TasmotaCommandChain *tcc = malloc(sizeof(TasmotaCommandChain));
-  if (!tcc)
-    return NULL;
+  if (tcc == NULL) {
+    fprintf(stderr, "Memory allocation failed!\n");
+    exit(EXIT_FAILURE);
+  }
   tcc->items = 0;
   tcc->capacity = TCC_INIT_CAP;
   tcc->buffer = malloc(sizeof(char *) * tcc->capacity);
-  if (!tcc->buffer) {
+  if (tcc->buffer == NULL) {
+    fprintf(stderr, "Memory allocation failed!\n");
     free(tcc);
-    return NULL;
+    exit(EXIT_FAILURE);
   }
   return tcc;
 }
@@ -49,28 +54,6 @@ char *construct_url(const char *command) {
   strcat(url, CMND_PATH);
   strcat(url, command);
   return url;
-}
-
-void send_command(const char *command) {
-  CURL *curl;
-  CURLcode res;
-
-  char *url = construct_url(command);
-
-  curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-    }
-    curl_easy_cleanup(curl);
-  } else {
-    fprintf(stderr, "Failed to initialize CURL\n");
-  }
-  free(url);
 }
 
 void get_request(const char *url) {
@@ -114,9 +97,10 @@ int execute_tcc(TasmotaCommandChain *tcc) {
   }
 
   char *command_buffer = malloc(total_len);
-  if (!command_buffer)
-    return -1;
-
+  if (!command_buffer) {
+    fprintf(stderr, "Memory allocation failed!\n");
+    exit(EXIT_FAILURE);
+  }
   command_buffer[0] = '\0';
 
   for (size_t i = 0; i < tcc->items; ++i) {

@@ -11,7 +11,7 @@
 #define CMND_SEP "%3B"
 #define POWER_ON "Power%20On"
 #define POWER_OFF "Power%20Off"
-#define PAUSE "Delay%201"
+#define PAUSE "Delay%202"
 #define PAUSE_RESET "Delay%2050"
 #define RESET_DELAY_MS 50
 #define TCC_INIT_CAP 16
@@ -29,7 +29,4 @@ TasmotaCommandChain *create_tasmota_command_chain(void);
 int add_command_to_tcc(TasmotaCommandChain *tcc, char *command);
 int execute_tcc(TasmotaCommandChain *tcc);
 
-// Curl
-char *construct_url(const char *command);
-void send_command(const char *command);
 #endif // !TASMOTA
